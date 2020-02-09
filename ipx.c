@@ -293,7 +293,7 @@ static void Real_IPX_ISR(union INTPACK far *ip)
 			break;
 		case IPX_CMD_GET_ADDRESS:
 			_fmemcpy(MK_FP(ip->w.es, ip->w.si),
-			         &dbipx_local_addr, sizeof(struct ipx_address));
+			         &dbipx_local_addr, 10);
 			break;
 		case IPX_CMD_RELINQUISH:
 		case IPX_CMD_DISCONNECT:
