@@ -93,6 +93,7 @@ static struct ipx_ecb far * far *FindECB(struct ipx_socket *sock, size_t len)
 {
 	struct ipx_ecb far * far *ecb;
 
+	// Try to find an ECB that is big enough to contain 'len' bytes.
 	ecb = &sock->ecbs;
 	while (*ecb != NULL) {
 		if (ECBSize(*ecb) >= len) {
@@ -100,8 +101,9 @@ static struct ipx_ecb far * far *FindECB(struct ipx_socket *sock, size_t len)
 		}
 		ecb = &(*ecb)->next_ecb;
 	}
-
-	return NULL;
+	// Give up and return the first one in the list. It will be populated
+	// but will get a bad completion code.
+	return &sock->ecbs;
 }
 
 static void FillECB(struct ipx_ecb far *ecb, const uint8_t *data, size_t len)
@@ -119,6 +121,16 @@ static void FillECB(struct ipx_ecb far *ecb, const uint8_t *data, size_t len)
 		data += nbytes;
 		len -= nbytes;
 	}
+
+	ecb->in_use = 0;
+
+	// We only flag a successful completion if the ECB was big enough to
+	// contain the whole packet.
+	if (len > 0) {
+		ecb->completion_code = 0xfd;  // malformed
+	} else {
+		ecb->completion_code = 0;
+	}
 }
 
 static void PacketReceived(const struct ipx_header *pkt, size_t len)
@@ -134,17 +146,15 @@ static void PacketReceived(const struct ipx_header *pkt, size_t len)
 	if (sock == NULL) {
 		return;
 	}
-	ecb = FindECB(sock, len);
-	if (ecb == NULL) {
+	if (sock->ecbs == NULL) {
 		return;
 	}
+	ecb = FindECB(sock, len);
 	FillECB(*ecb, (const uint8_t *) pkt, len);
 
-	// Mark as delivered and unhook from linked list.
 	_fmemcpy(&(*ecb)->immediate_address, pkt->src.node, 6);
-	(*ecb)->in_use = 0;
-	(*ecb)->completion_code = 0;
 	// TODO: ESR notification
+	// Packet has been delivered; unhook from linked list.
 	*ecb = (*ecb)->next_ecb;
 }
 
