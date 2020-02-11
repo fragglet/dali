@@ -24,6 +24,12 @@ static IpAddr_t server_addr;
 static int udp_port;
 static int registered;
 static dbipx_packet_callback rx_callback = NULL;
+static struct ipx_header tmphdr;
+static struct ipx_address ping_dest = {
+	{0x00, 0x00, 0x00, 0x00},  // network
+	{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},  // node
+	0x0200,  // socket, byte-swapped
+};
 struct ipx_address dbipx_local_addr;
 
 extern "C" {
@@ -40,6 +46,19 @@ void Error(char *fmt, ...)
 	exit(1);
 }
 
+static void SendPingReply(const struct ipx_address *dest)
+{
+	tmphdr.checksum = 0xffff;
+	tmphdr.length = sizeof(struct ipx_header);
+	tmphdr.transport_control = 0;
+	tmphdr.type  = 0;
+	memcpy(&tmphdr.dest, dest, sizeof(struct ipx_address));
+	memcpy(&tmphdr.src, &dbipx_local_addr, sizeof(struct ipx_address));
+
+	Udp::sendUdp(server_addr, udp_port, udp_port,
+	             sizeof(tmphdr), (unsigned char *) &tmphdr, 0);
+}
+
 static void PacketReceived(const unsigned char *packet, const UdpHeader *udp)
 {
 	const struct ipx_header *ipx;
@@ -51,9 +70,12 @@ static void PacketReceived(const unsigned char *packet, const UdpHeader *udp)
 	}
 
 	ipx = (const struct ipx_header *) (packet + sizeof(UdpPacket_t));
-	if (ntohs(ipx->src.socket) == 2 && ntohs(ipx->dest.socket) == 2) {
+	if (!memcmp(&ipx->dest, &ping_dest, sizeof(struct ipx_address))) {
+		SendPingReply(&ipx->src);
+	} else if (ntohs(ipx->src.socket) == 2 && ntohs(ipx->dest.socket) == 2) {
 		registered = 1;
-		memcpy(&dbipx_local_addr, &ipx->dest, sizeof(struct ipx_address));
+		memcpy(&dbipx_local_addr, &ipx->dest,
+		       sizeof(struct ipx_address));
 	} else if (rx_callback != NULL) {
 		rx_callback(ipx, len);
 	}
@@ -63,8 +85,6 @@ static void PacketReceived(const unsigned char *packet, const UdpHeader *udp)
 
 static void SendRegistration(void)
 {
-	static struct ipx_header tmphdr;
-
 	memset(&tmphdr, 0, sizeof(tmphdr));
 	tmphdr.dest.socket = htons(2);
 	tmphdr.src.socket = htons(2);
