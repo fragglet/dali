@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <malloc.h>
 #include <process.h>
 
 #include "ipx.h"
@@ -15,6 +16,8 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Usage: %s <addr> <port>\n", argv[0]);
 		exit(1);
 	}
+
+	_heapgrow();
 
 	DBIPX_Connect(argv[1], atoi(argv[2]));
 	printf("Connected successfully!\n");
