@@ -92,6 +92,14 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
+	if (getenv("MTCPCFG") == NULL) {
+		fprintf(stderr,
+"Error: Environment variable MTCPCFG is not set to contain the path to\n"
+"an mTCP configuration file. Instead of running this directly, consider\n"
+"running connect.bat which will take care of this and other steps.\n");
+		exit(1);
+	}
+
 	if (argc == 2) {
 		port = DEFAULT_IPX_PORT;
 	} else {
