@@ -10,6 +10,8 @@
 #include "ipx.h"
 #include "dbipx.h"
 
+#define DEFAULT_IPX_PORT  213  /* as used by DOSbox */
+
 #pragma pack(__push, 1)
 struct mcb {
 	char flag;
@@ -73,12 +75,13 @@ static void UnloadTSR(void)
 int main(int argc, char *argv[])
 {
 	char *addr;
+	int port;
 
 	if (argc == 2 && !strcmp(argv[1], "/u")) {
 		UnloadTSR();
 	}
 
-	if (argc < 3) {
+	if (argc < 2) {
 		printf(
 "Dali v0.3 - driver to connect to a DOSbox IPX server.\n\n"
 "Usage:\n"
@@ -89,7 +92,13 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 
-	DBIPX_Connect(argv[1], atoi(argv[2]));
+	if (argc == 2) {
+		port = DEFAULT_IPX_PORT;
+	} else {
+		port = atoi(argv[2]);
+	}
+
+	DBIPX_Connect(argv[1], port);
 	printf("Connected successfully!\n");
 	addr = dbipx_local_addr.node;
 	printf("Assigned address is %02x:%02x:%02x:%02x:%02x:%02x.\n",
