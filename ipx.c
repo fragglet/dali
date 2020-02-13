@@ -13,6 +13,10 @@
 #define IPX_INTERRUPT         0x7a
 #define REDIRECTOR_INTERRUPT  0x2f
 
+// Magic numbers for invoking the DOS redirector interrupt:
+#define REDIRECTOR_AX_IPX     0x7a00
+#define REDIRECTOR_AX_UNLOAD  0x73c4
+
 #define MAX_OPEN_SOCKETS 8
 
 #define IPX_CMD_OPEN_SOCKET   0x0000
@@ -38,6 +42,8 @@ struct ipx_socket {
 	struct ipx_ecb far *ecbs;
 };
 
+static int UnhookVectors(void);
+
 static uint8_t sendbuf[MTU];
 static void (__interrupt far *old_isr)(void);
 static void (__interrupt far *old_timer_isr)(void);
@@ -45,6 +51,7 @@ static void (__interrupt far *next_redirector)(void);
 static struct ipx_socket open_sockets[MAX_OPEN_SOCKETS];
 static unsigned int num_open_sockets;
 static unsigned int saved_ss, saved_sp;
+static unsigned int saved_psp;
 
 extern void SwitchStack(unsigned int);
 #pragma aux SwitchStack = \
@@ -351,14 +358,23 @@ static void __interrupt __far RedirectorISR(union INTPACK ip)
 	// There are two entrypoints to the IPX API. One is the 0x7a interrupt,
 	// and the other is via the redirector which sets es:di to the
 	// location of a routine to jump to.
-	if (ip.w.ax == 0x7a00) {
+	if (ip.w.ax == REDIRECTOR_AX_IPX) {
 		ip.h.al = 0xff;
 		ip.w.es = FP_SEG(IPXTrampoline);
 		ip.w.di = FP_OFF(IPXTrampoline);
 		return;
 	}
 
-	// TODO: Answer IPX API requests on this ISR too?
+	if (ip.w.ax == REDIRECTOR_AX_UNLOAD) {
+		static int result;
+
+		SWITCH_ISR_STACK;
+		result = UnhookVectors();
+		RestoreStack();
+		ip.w.ax = REDIRECTOR_AX_UNLOAD + 1;
+		ip.w.bx = result;
+		ip.w.cx = saved_psp;
+	}
 
 	_chain_intr(next_redirector);
 }
@@ -372,18 +388,32 @@ static void __interrupt __far TimerISR(union INTPACK ip)
 	_chain_intr(old_timer_isr);
 }
 
-static void UnhookVector(void)
+static int UnhookVectors(void)
 {
-	_disable();
+	int changed;
+
+	// Check that the ISRs are the same ones we set in HookIPXVector.
+	// If any of them have been changed (eg. by another TSR loaded on
+	// top of us), we cannot unload.
+	if (_dos_getvect(IPX_INTERRUPT) != IPX_ISR
+	 || _dos_getvect(REDIRECTOR_INTERRUPT) != RedirectorISR
+	 || _dos_getvect(TIMER_INTERRUPT) != TimerISR) {
+		return 0;
+	}
+
 	DBIPX_SetCallback(NULL);
 	_dos_setvect(IPX_INTERRUPT, old_isr);
 	_dos_setvect(REDIRECTOR_INTERRUPT, next_redirector);
 	_dos_setvect(TIMER_INTERRUPT, old_timer_isr);
-	_enable();
+	DBIPX_Shutdown();
+
+	return 1;
 }
 
-void HookIPXVector(void)
+void HookIPXVectors(void)
 {
+	saved_psp = _psp;
+
 	_disable();
 	old_isr = _dos_getvect(IPX_INTERRUPT);
 	_dos_setvect(IPX_INTERRUPT, IPX_ISR);
@@ -393,7 +423,27 @@ void HookIPXVector(void)
 	_dos_setvect(TIMER_INTERRUPT, TimerISR);
 	DBIPX_SetCallback(PacketReceived);
 	_enable();
+}
 
-	atexit(UnhookVector);
+enum ipx_unload_result UnhookIPXVectors(unsigned int *isr_psp)
+{
+	union REGS regs;
+	struct SREGS sregs;
+
+	// Call into the redirector interrupt with the unload magic
+	// number that asks it to unhook vectors. We check the result
+	// to se if the call succeeds.
+	regs.w.ax = REDIRECTOR_AX_UNLOAD;
+	regs.w.bx = 0;
+	int86x(REDIRECTOR_INTERRUPT, &regs, &regs, &sregs);
+
+	if (regs.w.ax != REDIRECTOR_AX_UNLOAD + 1) {
+		return IPX_UNLOAD_NOT_LOADED;
+	} else if (!regs.w.bx) {
+		return IPX_UNLOAD_BLOCKED;
+	}
+
+	*isr_psp = regs.w.cx;
+	return IPX_UNLOAD_SUCCESS;
 }
 

@@ -125,10 +125,9 @@ static void ResolveAddress(const char *addr)
 static void __interrupt __far CtrlBreakHandler() {
 }
 
-static void ShutdownStack(void)
+void DBIPX_Shutdown(void)
 {
 	Utils::endStack();
-	Utils::dumpStats(stdout);
 }
 
 void DBIPX_Connect(const char *addr, int port)
@@ -142,7 +141,6 @@ void DBIPX_Connect(const char *addr, int port)
 	if (Utils::initStack(0, 0, CtrlBreakHandler, CtrlBreakHandler)) {
 		Error("Error initializing TCP/IP stack.");
 	}
-	atexit(ShutdownStack);
 
 	ResolveAddress(addr);
 	udp_port = port;

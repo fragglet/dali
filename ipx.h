@@ -2,6 +2,12 @@
 #ifndef IPX_H
 #define IPX_H
 
+enum ipx_unload_result {
+	IPX_UNLOAD_SUCCESS,
+	IPX_UNLOAD_NOT_LOADED,
+	IPX_UNLOAD_BLOCKED,
+};
+
 struct ipx_address {
 	unsigned char network[4];
 	unsigned char node[6];
@@ -36,7 +42,8 @@ struct ipx_ecb {
 	struct ipx_ecb_fragment fragments[1]; // [fragment_count]
 };
 
-void HookIPXVector(void);
+void HookIPXVectors(void);
+enum ipx_unload_result UnhookIPXVectors(unsigned int *isr_psp);
 
 #endif /* IPX_H */
 
