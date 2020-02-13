@@ -79,7 +79,13 @@ int main(int argc, char *argv[])
 	}
 
 	if (argc < 3) {
-		fprintf(stderr, "Usage: %s <addr> <port>\n", argv[0]);
+		printf(
+"Dali v0.3 - driver to connect to a DOSbox IPX server.\n\n"
+"Usage:\n"
+"    %s <addr> [port]  -- Connect to given address\n"
+"    %s /u             -- Disconnect and unload\n\n"
+"You must configure mTCP first. Please read the included documentation\n"
+"in the file connect.bat for details.\n", argv[0], argv[0]);
 		exit(1);
 	}
 
@@ -88,6 +94,7 @@ int main(int argc, char *argv[])
 	addr = dbipx_local_addr.node;
 	printf("Assigned address is %02x:%02x:%02x:%02x:%02x:%02x.\n",
 	       addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+	printf("To disconnect, run: %s /u\n", argv[0]);
 
 	HookIPXVectors();
 	TerminateAndStayResident(0, 8 * 1024);
