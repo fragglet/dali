@@ -64,7 +64,7 @@ static void SendPingReply(const struct ipx_address *dest)
 static void PacketReceived(const unsigned char *packet, const UdpHeader *udp)
 {
 	const struct ipx_header *ipx;
-	unsigned int len = ntohs(udp->len);
+	unsigned int len = ntohs(udp->len) - sizeof(UdpHeader);
 
 	if (len < sizeof(struct ipx_header)) {
 		Buffer_free(packet);
