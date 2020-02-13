@@ -43,6 +43,8 @@ void Error(char *fmt, ...)
 	vfprintf(stderr, fmt, args);
 	va_end(args);
 
+	DBIPX_Shutdown();
+
 	exit(1);
 }
 
