@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "inlines.h"
+#include "ints.h"
 #include "ipx.h"
 #include "dbipx.h"
 
@@ -45,31 +46,11 @@ struct ipx_socket {
 static int UnhookVectors(void);
 
 static uint8_t sendbuf[MTU];
-static void (__interrupt far *old_isr)(void);
-static void (__interrupt far *old_timer_isr)(void);
-static void (__interrupt far *next_redirector)(void);
+static struct interrupt_hook ipx_isr = {IPX_INTERRUPT};
+static struct interrupt_hook timer_isr = {TIMER_INTERRUPT};
+static struct interrupt_hook redirector_isr = {REDIRECTOR_INTERRUPT};
 static struct ipx_socket open_sockets[MAX_OPEN_SOCKETS];
 static unsigned int num_open_sockets;
-static unsigned int saved_ss, saved_sp;
-static unsigned int saved_psp;
-
-extern void SwitchStack(unsigned int);
-#pragma aux SwitchStack = \
-	"mov saved_ss, ss" \
-	"mov saved_sp, sp" \
-	"mov bx, ds" \
-	"mov ss, bx" \
-	"mov sp, ax" \
-	parm [ax] \
-	modify [bx];
-extern void RestoreStack(void);
-#pragma aux RestoreStack =\
-	"mov ss, saved_ss" \
-	"mov sp, saved_sp";
-
-static unsigned char isr_stack_space[512];
-#define SWITCH_ISR_STACK \
-	SwitchStack(FP_OFF(isr_stack_space + sizeof(isr_stack_space) - 32))
 
 static struct ipx_socket *FindSocket(unsigned short num)
 {
@@ -339,7 +320,7 @@ static void __interrupt __far IPX_ISR(union INTPACK ip)
 
 	SWITCH_ISR_STACK;
 	Real_IPX_ISR(_ip);
-	RestoreStack();
+	RESTORE_ISR_STACK;
 }
 
 extern void IPXTrampolineASM();
@@ -370,22 +351,22 @@ static void __interrupt __far RedirectorISR(union INTPACK ip)
 
 		SWITCH_ISR_STACK;
 		result = UnhookVectors();
-		RestoreStack();
+		RESTORE_ISR_STACK;
 		ip.w.ax = REDIRECTOR_AX_UNLOAD + 1;
 		ip.w.bx = result;
-		ip.w.cx = saved_psp;
+		ip.w.cx = _psp;
 	}
 
-	_chain_intr(next_redirector);
+	_chain_intr(redirector_isr.old_isr);
 }
 
 static void __interrupt __far TimerISR(union INTPACK ip)
 {
 	SWITCH_ISR_STACK;
 	DBIPX_Poll();
-	RestoreStack();
+	RESTORE_ISR_STACK;
 
-	_chain_intr(old_timer_isr);
+	_chain_intr(timer_isr.old_isr);
 }
 
 static int UnhookVectors(void)
@@ -402,9 +383,9 @@ static int UnhookVectors(void)
 	}
 
 	DBIPX_SetCallback(NULL);
-	_dos_setvect(IPX_INTERRUPT, old_isr);
-	_dos_setvect(REDIRECTOR_INTERRUPT, next_redirector);
-	_dos_setvect(TIMER_INTERRUPT, old_timer_isr);
+	RestoreInterrupt(&ipx_isr);
+	RestoreInterrupt(&redirector_isr);
+	RestoreInterrupt(&timer_isr);
 	DBIPX_Shutdown();
 
 	return 1;
@@ -412,15 +393,10 @@ static int UnhookVectors(void)
 
 void HookIPXVectors(void)
 {
-	saved_psp = _psp;
-
 	_disable();
-	old_isr = _dos_getvect(IPX_INTERRUPT);
-	_dos_setvect(IPX_INTERRUPT, IPX_ISR);
-	next_redirector = _dos_getvect(REDIRECTOR_INTERRUPT);
-	_dos_setvect(REDIRECTOR_INTERRUPT, RedirectorISR);
-	old_timer_isr = _dos_getvect(TIMER_INTERRUPT);
-	_dos_setvect(TIMER_INTERRUPT, TimerISR);
+	FindAndHookInterrupt(&ipx_isr, IPX_ISR);
+	FindAndHookInterrupt(&redirector_isr, RedirectorISR);
+	FindAndHookInterrupt(&timer_isr, TimerISR);
 	DBIPX_SetCallback(PacketReceived);
 	_enable();
 }
