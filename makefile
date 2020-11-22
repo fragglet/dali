@@ -8,7 +8,7 @@ CFLAGS = -0 $(MEMORY_MODEL) -DCFG_H="mtcpcomp.cfg" -oh -ok -os -s -oa -ei -zp2 -
 CFLAGS += -i=$(TCP_H_DIR) -i=$(COMMON_H_DIR)
 
 MTCP_OBJS = packet.obj dns.obj arp.obj eth.obj ip.obj udp.obj utils.obj timer.obj ipasm.obj trace.obj
-OBJS = dbipx.obj dali.obj ipx.obj
+OBJS = dbipx.obj dali.obj ipx.obj ints.obj
 
 all : dali.exe
 
