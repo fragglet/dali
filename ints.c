@@ -40,7 +40,6 @@ int FindAndHookInterrupt(struct interrupt_hook *state,
 {
     if (state->force_vector != 0)
     {
-        printf("Using forced interrupt vector 0x%x\n", state->force_vector);
         state->interrupt_num = state->force_vector;
     }
     else
