@@ -107,7 +107,7 @@ int main(int argc, char *argv[])
 	}
 
 	DBIPX_Connect(argv[1], port);
-	printf("Connected successfully!\n");
+	printf("Connected successfully to %s port %d.\n", argv[1], port);
 	addr = dbipx_local_addr.node;
 	printf("Assigned address is %02x:%02x:%02x:%02x:%02x:%02x.\n",
 	       addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
