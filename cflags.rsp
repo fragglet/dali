@@ -1,0 +1,2 @@
+ -0 -DCFG_H="mtcpcomp.cfg" -oh -ok -os -s -oa -ei -zp2 -zpw -we -bt=DOS
+
