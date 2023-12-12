@@ -20,34 +20,39 @@ set check_connected=y
 rem ######################################################################
 rem
 rem Packet driver
-rem 
+rem
 rem To communicate over the network you need a packet driver for your DOS
 rem machine. The driver to use depends on the type of network card that
 rem you have in your machine. Note that we're talking about a real DOS
 rem setup here - this won't work on Windows 9x. If you're using Windows
 rem 9x you'll want to get something working using the Windows networking
 rem stack instead.
-rem 
+rem
 rem Setting up the packet driver is usually a matter of running it,
 rem sometimes with some mandatory command line arguments, but it entirely
 rem depends on the driver and it's hard to give any specific instructions.
 rem
 rem It's assumed the packet driver will be at vector 0x60. If you use a
 rem different interrupt vector you'll need to edit mtcp.cfg to match.
-rem 
+rem
 rem Here are some resources for DOS packet drivers:
-rem 
+rem
+rem * Omar Yabar's website has a comprehensive list of DOS packet driver
+rem   downloads:
+rem
+rem   http://packetdriversdos.net/
+rem
 rem * Look for the Crynwr packet driver collection, usually distributed as
 rem   `pktd11a.zip`, `pktd11b.zip`, `pktd11c.zip`. This collection includes
 rem   a large number of high-quality drivers for common network driver types.
-rem 
+rem
 rem * Georg Potthast's website contains a number of packet drivers for later
 rem   cards not found in the Crynwr collection:
-rem 
+rem
 rem   http://www.georgpotthast.de/sioux/packet.htm
-rem 
+rem
 rem * Michael Brutman's website has a useful page about DOS packet drivers:
-rem 
+rem
 rem   https://www.brutman.com/Dos_Networking/
 
 rem The following is just an example you might use if you had an NE2000 card:

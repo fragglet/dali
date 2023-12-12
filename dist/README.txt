@@ -18,6 +18,11 @@ To use Dali, the most important thing you will need is a DOS packet
 driver that works with your network card. Here are some resources for
 DOS packet drivers:
 
+ * Omar Yabar has put together a comprehensive list of packet driver
+   downloads for different cards:
+
+   <http://packetdriversdos.net/>
+
  * Look for the Crynwr packet driver collection, usually distributed as
    `pktd11a.zip`, `pktd11b.zip`, `pktd11c.zip`. This collection includes
    a large number of high-quality drivers for common network driver types.
