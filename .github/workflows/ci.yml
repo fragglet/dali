@@ -1,0 +1,25 @@
+name: Continuous Integration
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:  # Weekly build
+    - cron: "15 3 * * 1"
+
+jobs:
+  watcom_build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v6
+      with:
+        submodules: true
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt -q install dosbox
+    - name: build
+      timeout-minutes: 20
+      run: |
+        ./build/watbuild.sh
