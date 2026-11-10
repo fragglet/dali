@@ -4,7 +4,7 @@ TCP_C_DIR = $(MTCP_DIR)\TCPLIB
 COMMON_H_DIR = $(MTCP_DIR)\INCLUDE
 
 MEMORY_MODEL = -ms
-CFLAGS = $(MEMORY_MODEL) @cflags.rsp
+CFLAGS = -q $(MEMORY_MODEL) @cflags.rsp
 CFLAGS += -i=$(TCP_H_DIR) -i=$(COMMON_H_DIR)
 
 OBJ_DIR = o
@@ -36,7 +36,7 @@ clean : .symbolic
 .cpp : $(TCP_C_DIR)
 
 .asm.obj :
-	wasm -0 $(MEMORY_MODEL) -fo$@ $[*
+	wasm -q -0 $(MEMORY_MODEL) -fo$@ $[*
 
 .cpp.obj :
 	wpp $[* -fo$@ $(CFLAGS)
@@ -45,5 +45,5 @@ clean : .symbolic
 	wcc $[* -fo$@ $(CFLAGS)
 
 dali.exe : $(MTCP_OBJS) $(OBJS)
-	wlink system dos option map option eliminate option stack=4096 name $@ file $(OBJ_DIR)\*.obj
+	wlink system dos option map option quiet option eliminate option stack=4096 name $@ file $(OBJ_DIR)\*.obj
 
