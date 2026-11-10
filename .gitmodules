@@ -1,0 +1,6 @@
+[submodule "build/dos-compilers"]
+	path = build/dos-compilers
+	url = https://github.com/fragglet/dos-compilers.git
+[submodule "mtcp"]
+	path = mtcp
+	url = https://github.com/mbbrutman/mTCP
