@@ -7,14 +7,28 @@ MEMORY_MODEL = -ms
 CFLAGS = $(MEMORY_MODEL) @cflags.rsp
 CFLAGS += -i=$(TCP_H_DIR) -i=$(COMMON_H_DIR)
 
-MTCP_OBJS = packet.obj dns.obj arp.obj eth.obj ip.obj udp.obj utils.obj timer.obj ipasm.obj trace.obj
-OBJS = dbipx.obj dali.obj ipx.obj ints.obj
+OBJ_DIR = o
+
+MTCP_OBJS = $(OBJ_DIR)\packet.obj &
+            $(OBJ_DIR)\dns.obj    &
+            $(OBJ_DIR)\arp.obj    &
+            $(OBJ_DIR)\eth.obj    &
+            $(OBJ_DIR)\ip.obj     &
+            $(OBJ_DIR)\udp.obj    &
+            $(OBJ_DIR)\utils.obj  &
+            $(OBJ_DIR)\timer.obj  &
+            $(OBJ_DIR)\ipasm.obj  &
+            $(OBJ_DIR)\trace.obj
+OBJS = $(OBJ_DIR)\dbipx.obj &
+       $(OBJ_DIR)\dali.obj  &
+       $(OBJ_DIR)\ipx.obj   &
+       $(OBJ_DIR)\ints.obj
 
 all : dali.exe
 
 clean : .symbolic
 	@del dali.exe
-	@del *.obj
+	@del $(OBJ_DIR)\*.obj
 	@del *.map
 
 .asm : $(TCP_C_DIR)
@@ -22,14 +36,14 @@ clean : .symbolic
 .cpp : $(TCP_C_DIR)
 
 .asm.obj :
-	wasm -0 $(MEMORY_MODEL) $[*
+	wasm -0 $(MEMORY_MODEL) -fo$@ $[*
 
 .cpp.obj :
-	wpp $[* $(CFLAGS)
+	wpp $[* -fo$@ $(CFLAGS)
 
 .c.obj
-	wcc $[* $(CFLAGS)
+	wcc $[* -fo$@ $(CFLAGS)
 
 dali.exe : $(MTCP_OBJS) $(OBJS)
-	wlink system dos option map option eliminate option stack=4096 name $@ file *.obj
+	wlink system dos option map option eliminate option stack=4096 name $@ file $(OBJ_DIR)\*.obj
 
